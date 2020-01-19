@@ -1,0 +1,103 @@
+# Using MicroProfile Metrics to Determine Application Health
+
+Simple MicroProfile application that creates a health `@Liveness` endpoint that utilizes the ratio of successful requests to unsuccessful ("timed out") requests to determine application health. If the ratio exceeds a threshold, the health of the application is DOWN. This application uses a `@Timeout` MicroProfile Fault Tolerance annotation and the MicroProfile Metrics (`@Metered`) to count sucessful / unsuccessful requests attemppts
+
+Peruse the source code to see an example of using the MetricsRegistry to extract relevant information.
+
+This project uses Quarkus, the Supersonic Subatomic Java Framework.
+
+If you want to learn more about Quarkus, please visit its website: https://quarkus.io/ .
+
+NOTE: This sample is best run using three terminals. Each step will specify a terminal window to run the command in.
+
+== Follow these steps to experience the output live
+
+. Run the application in dev mode to enable live coding using:
++
+--
+
+[source,bash]
+.Terminal 1
+----
+./mvnw quarkus:dev
+----
+
+.Terrminal 1 Output
+....
+...
+...
+Listening for transport dt_socket at address: 5005
+2020-01-18 13:35:14,358 INFO  [io.quarkus] (main) health-using-metrics 1.0-SNAPSHOT (running on Quarkus 1.1.1.Final) started in 1.577s. Listening on: http://0.0.0.0:8080
+2020-01-18 13:35:14,371 INFO  [io.quarkus] (main) Profile dev activated. Live Coding activated.
+2020-01-18 13:35:14,371 INFO  [io.quarkus] (main) Installed features: [cdi, resteasy, smallrye-context-propagation, smallrye-fault-tolerance, smallrye-health, smallrye-metrics]
+....
+--
+
+. Generate load on the endpoint
++
+--
+
+.Terminal 2
+[source,bash]
+----
+while [ 1 ];
+do
+  curl localhost:8080/ping
+  echo
+  sleep 1
+done
+----
+
+.Terminal 1 Example Output
+....
+** Waiting 293ms **
+** Waiting 367ms **
+** Waiting 969ms **
+...
+...
+....
+
+.Terminal 2 Example Output
+....
+** Pong **
+** Pong **
+** timeout **
+....
+--
+
+. Monitor the health endpoint
++
+--
+.Terminal 3
+[source,bash]
+----
+while [ 1 ];
+do
+  curl localhost:8080/health/live
+  sleep 1
+done
+----
+
+.Terminal 3 Output
+[source,json]
+----
+{
+    "status": "UP",
+    "checks": [
+        {
+            "name": "MetricsHealthCheck",
+            "status": "UP",
+            "data": {
+                "message": "Fallback Count (ok)",
+                "pingCount": "83.0",
+                "fallbackCount": "42.0",
+                "ratio": "0.5060241"
+            }
+        }
+    ]
+} <1>
+----
+
+<1> This output repeat with differing "data" and status output.
+
+--
